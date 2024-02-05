@@ -4,15 +4,19 @@ import express from "express"
 import connectDB from "./db/index.js";
 import dotenv from 'dotenv';
 
-
+import {app} from './app.js'
 dotenv.config({
     path:"./env"
 });
 
+app.get('/',(req,res)=>{
+    res.send('server is ready')
+})
 connectDB()
 .then(()=>{
     app.listen(process.env.PORT || 8000, ()=>{
-        console.log(`server is running at ${process.env.PORT}`);
+        console.log(`server is running at ${process.env.PORT}
+        \n at http://localhost:${process.env.PORT}`);
     })
     app.on("error",(error)=>{
         console.log(error);
@@ -20,8 +24,9 @@ connectDB()
     })
 })
 .catch((err)=>{
-    console.log("mongo db error");
+    console.log("mongo db error",err);
 })
+
 
 
 
