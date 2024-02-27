@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+
 const registerUser = asyncHandler( async (req, res) =>
 {
     //get user information from frotend
@@ -15,22 +16,23 @@ const registerUser = asyncHandler( async (req, res) =>
     //remove password and refreshToken field from response
     //check for user creation
     //resturn res
-    const {fullName,email,username,password} = req.body;
-    console.log("email:",email)
+    const {fullname,email,username,password} = req.body;
+    console.log("email:",email);
+    console.log(("fullname :",fullname));
     if(
-        [fullName,email,username,password].some((field)=>field?.trim()==="")
+        [fullname,email,username,password].some((field)=>field?.trim()==="")
     ){
         throw new ApiError(400,"All fields are required")
     }
 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{email},{username}]
 })
     if (existedUser) {
         throw new ApiError(409,"User with same username or email already exists")
     }
     
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     if (!avatarLocalPath) {
@@ -43,7 +45,7 @@ const registerUser = asyncHandler( async (req, res) =>
         throw new ApiError("400","Avatar File is required")
     }
     const user = await User.create({
-        fullName,
+        fullname,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         email,
