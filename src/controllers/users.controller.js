@@ -34,6 +34,7 @@ const registerUser = asyncHandler( async (req, res) =>
     const {fullname,email,username,password} = req.body;
     console.log("email:",email);
     console.log(("fullname :",fullname));
+    
     if(
         [fullname,email,username,password].some((field)=>field?.trim()==="")
     ){
@@ -228,7 +229,6 @@ const changeCurrentPassord = asyncHandler(async(req,res)=>{
 })
 
 const getCurrentUser  =  asyncHandler(async(req,res)=>{
-
     return res
     .status(200)
     .json(200,
@@ -268,6 +268,9 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 })
 
 const updateUserAvatar = asyncHandler(async(req,res)=>{
+    
+    // const oldAvatar = req.file?.avatar?.[0]?.path
+    // const oldAvatarurl = oldAvatar.url
     const avatarLocalPath = req.file?.path
 
     if (!avatarLocalPath) {
@@ -338,8 +341,78 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 
 })
 
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+    const {username} = req.params;
 
-// WRITE SEPARATE CONTROLLERS FOR UPDATING FILES
+    if (!username?.trim()) {
+        throw new ApiError(400,"username not found")
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"channel",
+                as:"subscribers"
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size:"$subscribers"
+                },
+                channelSubscribedToCount:{
+                    $size:"$subscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullname:1,
+                username:1,
+                subscribersCount:1,
+                channelSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email:1
+            }
+        }
+    ]
+    )
+    if (!channel?.length) {
+        throw new ApiError(404,"channel does not exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User channel fetched successfully")
+    )
+})
+
+
 
 export {
     registerUser,
@@ -350,5 +423,10 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 }
+
+
+
+// WRITE SEPARATE CONTROLLERS FOR IMAGE FILES
